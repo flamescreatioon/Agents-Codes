@@ -1,29 +1,24 @@
-# Use Node.js LTS on Alpine for small image size
-FROM node:20-alpine
+# Use a lightweight Node.js image
+FROM node:18-alpine
 
-# Create app directory
+# Set working directory
 WORKDIR /app
 
-# Install system deps for sqlite3 prebuilt binaries compatibility
-RUN apk add --no-cache python3 make g++
-
-# Copy package manifests and install deps
+# Copy package.json and package-lock.json first (for caching)
 COPY package*.json ./
-RUN npm ci --omit=dev || npm install --omit=dev
 
-# Copy source
-COPY src ./src
+# Install dependencies
+RUN npm install --production
 
-# Environment
-ENV NODE_ENV=production \
-    PORT=8080 \
-    DATABASE_PATH=/data/agent.db
+# Copy the rest of your app
+COPY . .
 
-# Expose the port Fly will route to
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=8080
+
+# Expose the app port
 EXPOSE 8080
 
-# Create mount point for persistent data
-VOLUME ["/data"]
-
-# Start the server
-CMD ["npm", "start"]
+# Start the app
+CMD ["node", "server.js"]
