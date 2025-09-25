@@ -1,0 +1,51 @@
+{
+  "get_appointments_by_phone": {
+    "type": "object",
+    "properties": {
+      "phone": {
+        "type": "string",
+        "description": "The phone number to search appointments for (include country code, e.g., +1234567890)"
+      }
+    },
+    "required": ["phone"],
+    "additionalProperties": false
+  },
+  "get_appointments_by_date": {
+    "type": "object", 
+    "properties": {
+      "date": {
+        "type": "string",
+        "description": "The date to search appointments for in YYYY-MM-DD format (e.g., 2025-09-25)"
+      }
+    },
+    "required": ["date"],
+    "additionalProperties": false
+  },
+  "create_appointment": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Full name of the person booking the appointment"
+      },
+      "phone": {
+        "type": "string", 
+        "description": "Phone number with country code (e.g., +1234567890)"
+      },
+      "date": {
+        "type": "string",
+        "description": "Date for the appointment in YYYY-MM-DD format (e.g., 2025-09-25)"
+      },
+      "time": {
+        "type": "string",
+        "description": "Time for the appointment (e.g., 10:00 AM, 2:30 PM)"
+      },
+      "purpose": {
+        "type": "string",
+        "description": "Purpose or reason for the appointment (optional)"
+      }
+    },
+    "required": ["name", "date", "time"],
+    "additionalProperties": false
+  }
+}
