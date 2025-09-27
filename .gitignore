@@ -2,3 +2,4 @@
 node_modules
 *.db
 src/*.db
+check-env.js
