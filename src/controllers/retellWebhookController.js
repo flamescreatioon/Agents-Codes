@@ -230,4 +230,20 @@ class RetellWebhookController {
                 
                 // Format success response for Retell AI
                 let response = `Great! I've successfully booked an appointment for ${name} on ${date} at ${time}`;
-                if
+                if (purpose) {
+                    response += ` for ${purpose}`;
+                }
+                response += `. The appointment ID is ${this.lastID}.`;
+                
+                if (phone) {
+                    response += ` A confirmation will be sent to ${phone}.`;
+                }
+                
+                res.status(200).send(response);
+                return resolve();
+            });
+        });
+    }
+}
+
+module.exports = RetellWebhookController;
