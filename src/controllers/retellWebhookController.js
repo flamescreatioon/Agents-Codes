@@ -74,8 +74,30 @@ class RetellWebhookController {
 
             console.log(`🔧 Processing function: ${name} with args:`, args);
 
-            // Route to appropriate function based on name
-            switch (name) {
+            // Map Retell function names to internal function names
+            const functionMap = {
+                // Retell Dashboard Names -> Internal Function Names
+                'Booking-Function': 'create_appointment',
+                'Search-by-Phone': 'get_appointments_by_phone',
+                'Search-by-Date': 'get_appointments_by_date',
+                // Also support direct internal names for backward compatibility
+                'create_appointment': 'create_appointment',
+                'get_appointments_by_phone': 'get_appointments_by_phone',
+                'get_appointments_by_date': 'get_appointments_by_date'
+            };
+
+            const internalFunctionName = functionMap[name];
+            
+            if (!internalFunctionName) {
+                const errorMsg = `Unknown function: ${name}. Available functions: ${Object.keys(functionMap).join(', ')}`;
+                console.error(errorMsg);
+                return res.status(400).send(errorMsg);
+            }
+
+            console.log(`📍 Mapped function ${name} -> ${internalFunctionName}`);
+
+            // Route to appropriate function based on mapped name
+            switch (internalFunctionName) {
                 case 'get_appointments_by_phone':
                     return await RetellWebhookController.getAppointmentsByPhone(args, call, res);
                     
@@ -86,9 +108,9 @@ class RetellWebhookController {
                     return await RetellWebhookController.createAppointment(args, call, res);
                     
                 default:
-                    const errorMsg = `Unknown function: ${name}`;
+                    const errorMsg = `Internal function mapping error: ${internalFunctionName}`;
                     console.error(errorMsg);
-                    return res.status(400).send(errorMsg);
+                    return res.status(500).send(errorMsg);
             }
             
         } catch (error) {
@@ -208,9 +230,15 @@ class RetellWebhookController {
                 return resolve();
             }
 
+            // Normalize date format (convert "30th September" to "2025-09-30")
+            const normalizedDate = RetellWebhookController.normalizeDate(date);
+            
+            // Normalize time format (convert "2pm" to "14:00")
+            const normalizedTime = RetellWebhookController.normalizeTime(time);
+
             const sql = `INSERT INTO appointments (name, phone, date, time, purpose) VALUES (?, ?, ?, ?, ?)`;
             
-            db.run(sql, [name, phone || null, date, time, purpose || null], function (err) {
+            db.run(sql, [name, phone || null, normalizedDate, normalizedTime, purpose || null], function (err) {
                 if (err) {
                     console.error('Database error:', err);
                     const response = 'I encountered an error while booking the appointment. Please try again.';
@@ -235,6 +263,70 @@ class RetellWebhookController {
                 return resolve();
             });
         });
+    }
+
+    // Helper function to normalize date formats
+    static normalizeDate(dateStr) {
+        const currentYear = new Date().getFullYear();
+        
+        // Handle formats like "30th September", "September 30th", etc.
+        const monthNames = {
+            'january': '01', 'february': '02', 'march': '03', 'april': '04',
+            'may': '05', 'june': '06', 'july': '07', 'august': '08',
+            'september': '09', 'october': '10', 'november': '11', 'december': '12'
+        };
+        
+        // Remove ordinal indicators (st, nd, rd, th)
+        let normalized = dateStr.toLowerCase().replace(/(\d+)(st|nd|rd|th)/g, '$1');
+        
+        // Try to extract day and month
+        const parts = normalized.split(/[\s,]+/);
+        let day, month;
+        
+        for (const part of parts) {
+            if (/^\d{1,2}$/.test(part)) {
+                day = part.padStart(2, '0');
+            } else if (monthNames[part]) {
+                month = monthNames[part];
+            }
+        }
+        
+        if (day && month) {
+            return `${currentYear}-${month}-${day}`;
+        }
+        
+        // If normalization fails, return original
+        console.warn(`Could not normalize date: ${dateStr}`);
+        return dateStr;
+    }
+
+    // Helper function to normalize time formats
+    static normalizeTime(timeStr) {
+        // Handle formats like "2pm", "2:30 PM", "14:00", etc.
+        const normalized = timeStr.toLowerCase().replace(/\s/g, '');
+        
+        // Handle 12-hour format with am/pm
+        const match12h = normalized.match(/^(\d{1,2})(:(\d{2}))?(am|pm)$/);
+        if (match12h) {
+            let hours = parseInt(match12h[1]);
+            const minutes = match12h[3] || '00';
+            const period = match12h[4];
+            
+            if (period === 'pm' && hours !== 12) hours += 12;
+            if (period === 'am' && hours === 12) hours = 0;
+            
+            return `${hours.toString().padStart(2, '0')}:${minutes}`;
+        }
+        
+        // Handle 24-hour format
+        const match24h = normalized.match(/^(\d{1,2}):(\d{2})$/);
+        if (match24h) {
+            return `${match24h[1].padStart(2, '0')}:${match24h[2]}`;
+        }
+        
+        // If normalization fails, return original
+        console.warn(`Could not normalize time: ${timeStr}`);
+        return timeStr;
     }
 }
 
