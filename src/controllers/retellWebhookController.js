@@ -37,13 +37,13 @@ class RetellWebhookController {
             // Route to appropriate function based on name
             switch (name) {
                 case 'get_appointments_by_phone':
-                    return await this.getAppointmentsByPhone(args, call, res);
+                    return await RetellWebhookController.getAppointmentsByPhone(args, call, res);
                     
                 case 'get_appointments_by_date':
-                    return await this.getAppointmentsByDate(args, call, res);
+                    return await RetellWebhookController.getAppointmentsByDate(args, call, res);
                     
                 case 'create_appointment':
-                    return await this.createAppointment(args, call, res);
+                    return await RetellWebhookController.createAppointment(args, call, res);
                     
                 default:
                     return res.status(400).json({ error: `Unknown function: ${name}` });
@@ -61,7 +61,9 @@ class RetellWebhookController {
             const { phone } = args;
             
             if (!phone) {
-                return res.status(200).json('I need a phone number to search for appointments. Could you please provide the phone number?');
+                const response = 'I need a phone number to search for appointments. Could you please provide the phone number including the country code, like +1234567890?';
+                res.status(200).json(response);
+                return resolve();
             }
 
             const sql = "SELECT * FROM appointments WHERE phone = ?";
@@ -69,11 +71,15 @@ class RetellWebhookController {
             db.all(sql, [phone], (err, rows) => {
                 if (err) {
                     console.error('Database error:', err);
-                    return res.status(200).json('I encountered an error while searching for appointments. Please try again.');
+                    const response = 'I encountered an error while searching for appointments. Please try again.';
+                    res.status(200).json(response);
+                    return resolve();
                 }
                 
                 if (rows.length === 0) {
-                    return res.status(200).json(`No appointments found for phone number ${phone}.`);
+                    const response = `No appointments found for phone number ${phone}.`;
+                    res.status(200).json(response);
+                    return resolve();
                 }
                 
                 // Format response for Retell AI (conversational format)
@@ -87,7 +93,8 @@ class RetellWebhookController {
                     response += '\n';
                 });
                 
-                return res.status(200).json(response.trim());
+                res.status(200).json(response.trim());
+                return resolve();
             });
         });
     }
@@ -98,7 +105,9 @@ class RetellWebhookController {
             const { date } = args;
             
             if (!date) {
-                return res.status(200).json('I need a date to search for appointments. Could you please provide the date?');
+                const response = 'I need a date to search for appointments. Could you please provide the date in YYYY-MM-DD format, like 2025-09-28?';
+                res.status(200).json(response);
+                return resolve();
             }
 
             const sql = "SELECT * FROM appointments WHERE date = ?";
@@ -106,11 +115,15 @@ class RetellWebhookController {
             db.all(sql, [date], (err, rows) => {
                 if (err) {
                     console.error('Database error:', err);
-                    return res.status(200).json('I encountered an error while searching for appointments. Please try again.');
+                    const response = 'I encountered an error while searching for appointments. Please try again.';
+                    res.status(200).json(response);
+                    return resolve();
                 }
                 
                 if (rows.length === 0) {
-                    return res.status(200).json(`No appointments scheduled for ${date}.`);
+                    const response = `No appointments scheduled for ${date}.`;
+                    res.status(200).json(response);
+                    return resolve();
                 }
                 
                 // Format response for Retell AI (conversational format)
@@ -128,7 +141,8 @@ class RetellWebhookController {
                     response += '\n';
                 });
                 
-                return res.status(200).json(response.trim());
+                res.status(200).json(response.trim());
+                return resolve();
             });
         });
     }
@@ -140,7 +154,9 @@ class RetellWebhookController {
             
             // Validate required fields
             if (!name || !date || !time) {
-                return res.status(200).json('To book an appointment, I need at least the name, date, and time. Could you please provide these details?');
+                const response = 'To book an appointment, I need at least the name, date, and time. Could you please provide these details?';
+                res.status(200).json(response);
+                return resolve();
             }
 
             const sql = `INSERT INTO appointments (name, phone, date, time, purpose) VALUES (?, ?, ?, ?, ?)`;
@@ -148,7 +164,9 @@ class RetellWebhookController {
             db.run(sql, [name, phone || null, date, time, purpose || null], function (err) {
                 if (err) {
                     console.error('Database error:', err);
-                    return res.status(200).json('I encountered an error while booking the appointment. Please try again.');
+                    const response = 'I encountered an error while booking the appointment. Please try again.';
+                    res.status(200).json(response);
+                    return resolve();
                 }
                 
                 // Format success response for Retell AI
@@ -162,7 +180,8 @@ class RetellWebhookController {
                     response += ` A confirmation will be sent to ${phone}.`;
                 }
                 
-                return res.status(200).json(response);
+                res.status(200).json(response);
+                return resolve();
             });
         });
     }

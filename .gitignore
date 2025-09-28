@@ -3,3 +3,8 @@ node_modules
 *.db
 src/*.db
 check-env.js
+coverage/
+__tests__
+TEST_SUITE_DOCUMENTATION.md
+RETELL_COMPLIANCE_AUDIT.md
+jest.config.js
