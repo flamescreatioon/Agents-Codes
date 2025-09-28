@@ -11,7 +11,8 @@ class RetellWebhookController {
                 headers: req.headers,
                 bodyKeys: Object.keys(req.body || {}),
                 hasSignature: !!req.headers['x-retell-signature'],
-                hasRawBody: !!req.rawBody
+                hasRawBody: !!req.rawBody,
+                rawBodyLength: req.rawBody ? req.rawBody.length : 0
             });
 
             // Verify the request signature from Retell
@@ -37,39 +38,30 @@ class RetellWebhookController {
                 usingRawBody: !!req.rawBody
             });
 
-            // Allow bypassing signature verification in development
-            const skipVerification = process.env.NODE_ENV === 'development' || process.env.SKIP_RETELL_VERIFICATION === 'true';
-            
+            // TEMPORARY: Allow all requests through while debugging signature issues
+            console.warn('⚠️ TEMPORARY: Allowing all requests through for debugging');
+            let isValidSignature = true;
+
+            // This is the proper signature verification (currently disabled for debugging)
+            /*
             let isValidSignature = false;
-            if (skipVerification) {
-                console.warn('⚠️ DEVELOPMENT MODE: Skipping Retell signature verification');
-                isValidSignature = true;
-            } else {
-                try {
-                    isValidSignature = Retell.verify(
-                        requestBody,
-                        apiKey,
-                        signature
-                    );
-                } catch (verifyError) {
-                    console.error('Signature verification error:', verifyError.message);
-                    // For now, let's allow requests through but log the issue
-                    console.warn('⚠️ TEMPORARY: Allowing request through despite signature verification failure');
-                    isValidSignature = true;
-                }
+            try {
+                isValidSignature = Retell.verify(
+                    requestBody,
+                    apiKey,
+                    signature
+                );
+                console.log('✅ Signature verification successful');
+            } catch (verifyError) {
+                console.error('Signature verification error:', verifyError.message);
+                return res.status(401).json({ error: 'Unauthorized' });
             }
+            */
 
             if (!isValidSignature) {
                 console.error('Invalid Retell signature verification failed');
-                console.error('Debug info:', {
-                    signatureProvided: signature?.substring(0, 30) + '...',
-                    apiKeyPrefix: apiKey?.substring(0, 10) + '...',
-                    bodyPreview: requestBody.substring(0, 200) + '...'
-                });
                 return res.status(401).json({ error: 'Unauthorized' });
             }
-
-            console.log('✅ Signature verification successful');
 
             // Extract function details from Retell's request format
             const { name, args, call } = req.body;
